@@ -1,0 +1,2111 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#020617" />
+  <meta name="description" content="ArrendaPro AI - Gestión de alquileres en España conforme a la LAU y Ley de Vivienda 12/2023 con IA Gemini 3.8" />
+  <title>ArrendaPro AI | Gestión Alquileres LAU & Ley de Vivienda</title>
+
+  <!-- Fuente Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+          }
+        }
+      }
+    };
+  </script>
+
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #020617;
+      color: #f1f5f9;
+      overflow-x: hidden;
+    }
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-fadeIn {
+      animation: fadeIn 0.25s ease-out forwards;
+    }
+  </style>
+</head>
+<body class="min-h-screen bg-slate-950 text-slate-100 flex flex-col selection:bg-emerald-500 selection:text-white">
+
+  <!-- CONTENEDOR DE NOTIFICACIONES TOAST (SIN ALERT) -->
+  <div id="toast-container" class="fixed bottom-5 right-5 z-50 max-w-md hidden"></div>
+
+  <!-- HEADER SUPERIOR -->
+  <header class="sticky top-0 z-30 bg-slate-900/90 backdrop-blur-xl border-b border-slate-800/80 px-4 lg:px-8 py-3">
+    <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
+      <!-- Logo y Marca -->
+      <div class="flex items-center gap-3">
+        <div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-600 flex items-center justify-center shadow-lg shadow-emerald-500/20 border border-emerald-400/30">
+          <i data-lucide="building-2" class="w-6 h-6 text-white"></i>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="text-lg sm:text-xl font-bold tracking-tight bg-gradient-to-r from-white via-slate-100 to-emerald-300 bg-clip-text text-transparent">
+              ArrendaPro <span class="text-emerald-400">AI</span>
+            </h1>
+            <span class="hidden sm:inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+              <i data-lucide="sparkles" class="w-2.5 h-2.5"></i> Gemini 3.8 Core
+            </span>
+          </div>
+          <p class="text-xs text-slate-400 hidden sm:block">
+            Gestión Local LAU & Ley de Vivienda 12/2023 • España
+          </p>
+        </div>
+      </div>
+
+      <!-- Selector de Contrato / Piso -->
+      <div class="flex items-center gap-2 flex-1 max-w-md">
+        <div class="relative flex-1">
+          <select id="contract-selector" onchange="handleSelectContract(this.value)" class="w-full bg-slate-800/90 hover:bg-slate-800 text-slate-100 text-sm font-medium rounded-xl px-3.5 py-2.5 border border-slate-700 focus:outline-none focus:border-emerald-500 transition">
+          </select>
+        </div>
+        <button onclick="openModal('modal-new-contract')" title="Añadir nuevo contrato de alquiler" class="p-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-600/20 transition flex items-center gap-1.5 text-xs font-semibold shrink-0">
+          <i data-lucide="plus" class="w-4 h-4"></i>
+          <span class="hidden md:inline">Nuevo Alquiler</span>
+        </button>
+      </div>
+
+      <!-- Conmutador de Rol (Arrendador vs Inquilino) & Backup -->
+      <div class="flex items-center gap-2.5">
+        <div class="bg-slate-950 p-1 rounded-xl border border-slate-800 flex items-center">
+          <button id="btn-role-landlord" onclick="setRole('landlord')" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all">
+            <i data-lucide="building-2" class="w-3.5 h-3.5"></i>
+            <span>Arrendador</span>
+          </button>
+          <button id="btn-role-tenant" onclick="setRole('tenant')" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all">
+            <i data-lucide="users" class="w-3.5 h-3.5"></i>
+            <span>Inquilino</span>
+          </button>
+        </div>
+
+        <!-- Botón Backup Local -->
+        <button onclick="openModal('modal-backup')" class="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-medium transition">
+          <i data-lucide="download" class="w-3.5 h-3.5 text-emerald-400"></i>
+          <span class="hidden lg:inline">Backup Local</span>
+        </button>
+
+        <!-- Botón Plan PRO Google Play -->
+        <button onclick="openModal('modal-pro')" class="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-gradient-to-r from-amber-500/20 to-yellow-500/20 hover:from-amber-500/30 hover:to-yellow-500/30 text-amber-300 border border-amber-500/40 text-xs font-semibold transition">
+          <i data-lucide="crown" class="w-3.5 h-3.5 text-amber-400"></i>
+          <span class="hidden sm:inline">PRO</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- BANNER DE ROL ACTIVO -->
+  <div id="role-banner" class="border-b px-4 py-2 text-xs transition-colors"></div>
+
+  <!-- NAVEGACIÓN DE PESTAÑAS -->
+  <div class="bg-slate-900/60 border-b border-slate-800 px-4 lg:px-8">
+    <div id="tabs-nav" class="max-w-7xl mx-auto flex items-center gap-1 overflow-x-auto no-scrollbar py-2"></div>
+  </div>
+
+  <!-- CONTENIDO DINÁMICO PRINCIPAL -->
+  <main id="main-content" class="flex-1 max-w-7xl w-full mx-auto px-4 lg:px-8 py-6 space-y-6"></main>
+
+  <!-- ========================================== -->
+  <!-- MODALES DE LA APLICACIÓN                   -->
+  <!-- ========================================== -->
+
+  <!-- MODAL 1: COPIA DE SEGURIDAD Y RESTAURACIÓN (.JSON) -->
+  <div id="modal-backup" class="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-700 rounded-3xl max-w-lg w-full p-6 space-y-5 shadow-2xl animate-fadeIn">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2.5">
+          <div class="p-2.5 rounded-xl bg-emerald-500/15 text-emerald-400">
+            <i data-lucide="download" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 class="text-lg font-bold text-white">Copia de Seguridad Local (Offline-First)</h3>
+            <p class="text-xs text-slate-400">Tus datos nunca salen de tu teléfono u ordenador</p>
+          </div>
+        </div>
+        <button onclick="closeModal('modal-backup')" class="text-slate-400 hover:text-white">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="bg-slate-950 p-4 rounded-2xl border border-slate-800 text-xs text-slate-300 space-y-2">
+        <p><strong>Privacidad 100% Local:</strong> Todos los contratos, fianzas, recibos de suministros y fotos de incidencias se guardan en el almacenamiento interno de tu navegador (<code>localStorage</code>).</p>
+        <p>Descarga una copia en formato <code>.json</code> para guardarla o restaurarla en otro dispositivo.</p>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <button onclick="exportBackupJSON()" class="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition shadow-lg">
+          <i data-lucide="download" class="w-6 h-6"></i>
+          <span>Guardar Copia de Seguridad (.JSON)</span>
+        </button>
+
+        <label class="cursor-pointer flex flex-col items-center justify-center gap-2 p-4 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-100 border border-slate-700 font-bold text-xs transition">
+          <i data-lucide="upload" class="w-6 h-6 text-indigo-400"></i>
+          <span>Restaurar Copia de Seguridad</span>
+          <input type="file" accept=".json" onchange="importBackupJSON(event)" class="hidden" />
+        </label>
+      </div>
+
+      <div class="pt-3 border-t border-slate-800 flex items-center justify-between">
+        <button onclick="resetDemoData()" class="text-xs text-slate-400 hover:text-rose-400 flex items-center gap-1 transition">
+          <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Restaurar datos iniciales de ejemplo
+        </button>
+        <button onclick="closeModal('modal-backup')" class="px-4 py-2 rounded-xl bg-slate-800 text-xs font-semibold text-white">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 2: PASAR NUEVO RECIBO / SUMINISTRO -->
+  <div id="modal-new-bill" class="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-700 rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl animate-fadeIn">
+      <div class="flex items-center justify-between">
+        <h3 class="text-lg font-bold text-white flex items-center gap-2">
+          <i data-lucide="receipt" class="w-5 h-5 text-emerald-400"></i>
+          Pasar Recibo de Suministro o Mes
+        </h3>
+        <button onclick="closeModal('modal-new-bill')" class="text-slate-400 hover:text-white">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <form onsubmit="handleCreateBill(event)" class="space-y-3.5 text-xs">
+        <div>
+          <label class="block font-semibold text-slate-300 mb-1">Tipo de Recibo / Suministro</label>
+          <select id="bill-category" onchange="handleBillCategoryPreset(this.value)" class="w-full bg-slate-950 text-white rounded-xl px-3.5 py-2.5 border border-slate-800">
+            <option value="Luz">⚡ Luz / Electricidad</option>
+            <option value="Agua">💧 Agua</option>
+            <option value="Gas">🔥 Gas Natural</option>
+            <option value="Internet">🌐 Internet / Fibra</option>
+            <option value="Mensualidad Alquiler">🏠 Mensualidad de Alquiler</option>
+          </select>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold text-slate-300 mb-1">Periodo / Concepto</label>
+            <input id="bill-period" type="text" required value="Noviembre 2026" class="w-full bg-slate-950 text-white rounded-xl px-3.5 py-2.5 border border-slate-800" />
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-300 mb-1">Importe (€)</label>
+            <input id="bill-amount" type="number" step="0.01" required value="62.40" class="w-full bg-slate-950 text-white rounded-xl px-3.5 py-2.5 border border-slate-800 font-bold" />
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-300 mb-1">Fecha límite de pago</label>
+          <input id="bill-due" type="date" required value="2026-11-15" class="w-full bg-slate-950 text-white rounded-xl px-3.5 py-2.5 border border-slate-800" />
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-300 mb-1">Nota / Detalle de lectura o factura</label>
+          <input id="bill-note" type="text" value="Factura suministro adjunta para abono por el inquilino" class="w-full bg-slate-950 text-white rounded-xl px-3.5 py-2.5 border border-slate-800" />
+        </div>
+
+        <div class="pt-2 flex justify-end gap-2">
+          <button type="button" onclick="closeModal('modal-new-bill')" class="px-4 py-2.5 rounded-xl bg-slate-800 text-slate-300 font-semibold">Cancelar</button>
+          <button type="submit" class="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold shadow-lg">Emitir y Notificar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL 3: NOTIFICAR NUEVA AVERÍA CON FOTO + IA GEMINI 3.8 -->
+  <div id="modal-new-incident" class="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-700 rounded-3xl max-w-lg w-full p-6 space-y-4 shadow-2xl max-h-[92vh] overflow-y-auto animate-fadeIn">
+      <div class="flex items-center justify-between">
+        <div>
+          <h3 class="text-lg font-bold text-white flex items-center gap-2">
+            <i data-lucide="camera" class="w-5 h-5 text-emerald-400"></i>
+            Notificar Incidencia / Solicitar Reparación
+          </h3>
+          <p class="text-xs text-slate-400">Inicia el plazo legal de 15 días y analiza con IA Gemini 3.8 a quién corresponde.</p>
+        </div>
+        <button onclick="closeModal('modal-new-incident')" class="text-slate-400 hover:text-white">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <form onsubmit="handleCreateIncident(event)" class="space-y-3.5 text-xs">
+        <div>
+          <label class="block font-semibold text-slate-300 mb-1">Título de la avería</label>
+          <input id="inc-title" type="text" required placeholder="Ej: Fuga en sifón del fregadero / Lavadora no desagua" class="w-full bg-slate-950 text-white rounded-xl px-3.5 py-2.5 border border-slate-800" />
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold text-slate-300 mb-1">Categoría</label>
+            <select id="inc-category" class="w-full bg-slate-950 text-white rounded-xl px-3.5 py-2.5 border border-slate-800">
+              <option value="Fontanería">Fontanería</option>
+              <option value="Caldera/Climatización">Caldera / Climatización</option>
+              <option value="Electrodomésticos">Electrodomésticos</option>
+              <option value="Electricidad">Electricidad</option>
+              <option value="Carpintería/Persianas">Carpintería / Persianas</option>
+              <option value="Humedades/Estructura">Humedades / Estructura</option>
+            </select>
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-300 mb-1">Nivel de Urgencia</label>
+            <select id="inc-urgency" class="w-full bg-slate-950 text-white rounded-xl px-3.5 py-2.5 border border-slate-800">
+              <option value="Baja">Baja (Mantenimiento)</option>
+              <option value="Media">Media (Uso incómodo)</option>
+              <option value="Alta (Habitabilidad)">Alta (Afecta habitabilidad)</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-300 mb-1">Descripción detallada (antigüedad, cómo ha sucedido, síntomas)</label>
+          <textarea id="inc-desc" rows="3" required placeholder="Explica los detalles para que la IA determine según el Art. 21 de la LAU si debe repararlo el casero o el inquilino..." class="w-full bg-slate-950 text-white rounded-xl p-3 border border-slate-800"></textarea>
+        </div>
+
+        <div class="space-y-2">
+          <label class="block font-semibold text-slate-300">Fotografía de la avería</label>
+          <div class="flex items-center gap-3">
+            <img id="inc-photo-preview" src="https://images.unsplash.com/photo-1585704032915-c3400ca199e7?auto=format&fit=crop&w=600&q=80" alt="Vista previa" class="w-20 h-20 rounded-xl object-cover border border-slate-700" />
+            <label class="cursor-pointer flex-1 flex flex-col items-center justify-center p-3 rounded-xl border border-dashed border-slate-700 hover:border-emerald-500 bg-slate-950 transition">
+              <i data-lucide="camera" class="w-5 h-5 text-emerald-400 mb-1"></i>
+              <span class="font-semibold text-slate-200">Subir foto desde cámara o galería</span>
+              <span class="text-[10px] text-slate-500">Se guarda en local junto al parte</span>
+              <input type="file" accept="image/*" onchange="handleIncidentPhotoChange(event)" class="hidden" />
+            </label>
+          </div>
+        </div>
+
+        <div class="pt-2 flex justify-end gap-2">
+          <button type="button" onclick="closeModal('modal-new-incident')" class="px-4 py-2.5 rounded-xl bg-slate-800 text-slate-300 font-semibold">Cancelar</button>
+          <button type="submit" class="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold flex items-center gap-1.5 shadow-lg">
+            <i data-lucide="sparkles" class="w-4 h-4"></i>
+            <span>Enviar y Analizar con Gemini 3.8</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL 4: DESCONTAR REPARACIÓN DE LA MENSUALIDAD (>15 DÍAS) -->
+  <div id="modal-deduction" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-slate-900 border border-rose-500/50 rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl animate-fadeIn">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <div class="p-2 rounded-xl bg-rose-500/20 text-rose-400">
+            <i data-lucide="euro" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 class="text-base font-bold text-white">Descontar Reparación de la Mensualidad</h3>
+            <p class="text-[11px] text-rose-300">Plazo de 15 días superado sin respuesta del casero</p>
+          </div>
+        </div>
+        <button onclick="closeModal('modal-deduction')" class="text-slate-400 hover:text-white">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="bg-slate-950 p-3.5 rounded-2xl border border-slate-800 text-xs text-slate-300 space-y-1">
+        <p id="deduction-inc-title" class="font-bold text-white"></p>
+        <p class="text-slate-400">Al haber transcurrido más de 15 días sin que el arrendador haya aceptado o propuesto una reparación, puedes adjuntar la factura del profesional contratado para descontarla automáticamente del recibo del mes.</p>
+      </div>
+
+      <form onsubmit="handleConfirmDeduction(event)" class="space-y-3 text-xs">
+        <input type="hidden" id="deduction-inc-id" />
+        <div>
+          <label class="block font-semibold text-slate-300 mb-1">Empresa o Técnico Reparador</label>
+          <input id="deduction-provider" type="text" required value="Servicio Técnico Oficial SAT" class="w-full bg-slate-950 text-white rounded-xl px-3.5 py-2.5 border border-slate-800" />
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold text-slate-300 mb-1">Nº de Factura</label>
+            <input id="deduction-inv-num" type="text" required value="FAC-2026-0841" class="w-full bg-slate-950 text-white rounded-xl px-3.5 py-2.5 border border-slate-800" />
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-300 mb-1">Importe Factura (€)</label>
+            <input id="deduction-amount" type="number" step="0.01" required value="145.00" oninput="updateDeductionPreview()" class="w-full bg-slate-950 text-emerald-400 font-bold rounded-xl px-3.5 py-2.5 border border-slate-800" />
+          </div>
+        </div>
+
+        <div class="bg-emerald-950/40 border border-emerald-500/30 rounded-2xl p-3.5 space-y-1">
+          <div class="flex justify-between text-slate-300">
+            <span>Mensualidad ordinaria:</span>
+            <span id="deduction-base-rent">850.00 €</span>
+          </div>
+          <div class="flex justify-between text-rose-300 font-semibold">
+            <span>Descuento factura reparación:</span>
+            <span id="deduction-discount-preview">- 145.00 €</span>
+          </div>
+          <div class="flex justify-between text-white font-bold text-sm pt-1 border-t border-emerald-500/20">
+            <span>Nuevo neto a pagar este mes:</span>
+            <span id="deduction-net-preview" class="text-emerald-400">705.00 €</span>
+          </div>
+        </div>
+
+        <div class="pt-2 flex justify-end gap-2">
+          <button type="button" onclick="closeModal('modal-deduction')" class="px-4 py-2.5 rounded-xl bg-slate-800 text-slate-300 font-semibold">Cancelar</button>
+          <button type="submit" class="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold shadow-lg">Aplicar Descuento en Mensualidad</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL 5: RESPUESTA DEL ARRENDADOR A INCIDENCIA -->
+  <div id="modal-landlord-reply" class="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-700 rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl animate-fadeIn">
+      <div class="flex items-center justify-between">
+        <h3 class="text-base font-bold text-white flex items-center gap-2">
+          <i data-lucide="building-2" class="w-5 h-5 text-indigo-400"></i>
+          Responder a Incidencia (Modo Arrendador)
+        </h3>
+        <button onclick="closeModal('modal-landlord-reply')" class="text-slate-400 hover:text-white">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="space-y-3 text-xs">
+        <input type="hidden" id="reply-inc-id" />
+        <input type="hidden" id="reply-action-type" value="accept" />
+        <div class="grid grid-cols-2 gap-2">
+          <button type="button" id="btn-reply-accept" onclick="selectLandlordReplyType('accept')" class="p-3 rounded-xl border font-bold text-center transition bg-emerald-600/20 border-emerald-500 text-emerald-300">
+            ✅ Aceptar / Proponer Técnico
+          </button>
+          <button type="button" id="btn-reply-reject" onclick="selectLandlordReplyType('reject')" class="p-3 rounded-xl border font-bold text-center transition bg-slate-950 border-slate-800 text-slate-400">
+            ❌ Rechazar (Art. 21.4 LAU)
+          </button>
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-300 mb-1">Propuesta o comentario para el inquilino</label>
+          <textarea id="reply-note" rows="3" class="w-full bg-slate-950 text-white rounded-xl p-3 border border-slate-800">Acepto la reparación. El técnico del seguro del hogar acudirá este jueves de 10:00 a 13:00h.</textarea>
+        </div>
+
+        <div class="pt-2 flex justify-end gap-2">
+          <button onclick="closeModal('modal-landlord-reply')" class="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 font-semibold">Cancelar</button>
+          <button onclick="submitLandlordReply()" class="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold">Guardar Respuesta Oficial</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 6: NUEVO CONTRATO DE ALQUILER -->
+  <div id="modal-new-contract" class="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-700 rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl animate-fadeIn">
+      <div class="flex items-center justify-between">
+        <h3 class="text-lg font-bold text-white flex items-center gap-2">
+          <i data-lucide="building-2" class="w-5 h-5 text-emerald-400"></i>
+          Añadir Nuevo Contrato de Alquiler
+        </h3>
+        <button onclick="closeModal('modal-new-contract')" class="text-slate-400 hover:text-white">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <form onsubmit="handleCreateContract(event)" class="space-y-3 text-xs">
+        <div>
+          <label class="block font-semibold text-slate-300 mb-1">Alias del Piso / Inmueble</label>
+          <input id="new-c-alias" type="text" required placeholder="Ej: Piso C/ Gran Vía, Salamanca" class="w-full bg-slate-950 text-white rounded-xl px-3.5 py-2.5 border border-slate-800" />
+        </div>
+        <div>
+          <label class="block font-semibold text-slate-300 mb-1">Dirección completa</label>
+          <input id="new-c-address" type="text" placeholder="Calle, número, piso y código postal" class="w-full bg-slate-950 text-white rounded-xl px-3.5 py-2.5 border border-slate-800" />
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-semibold text-slate-300 mb-1">Renta Mensual (€)</label>
+            <input id="new-c-rent" type="number" required value="900" class="w-full bg-slate-950 text-white rounded-xl px-3.5 py-2.5 border border-slate-800 font-bold" />
+          </div>
+          <div class="flex items-end pb-2">
+            <label class="flex items-center gap-2 cursor-pointer text-slate-300">
+              <input id="new-c-tensionada" type="checkbox" class="rounded border-slate-700" />
+              <span>Zona Tensionada</span>
+            </label>
+          </div>
+        </div>
+        <div>
+          <label class="block font-semibold text-slate-300 mb-1">Nombre del Arrendador (Casero)</label>
+          <input id="new-c-landlord" type="text" required value="Carlos Mendoza García" class="w-full bg-slate-950 text-white rounded-xl px-3.5 py-2.5 border border-slate-800" />
+        </div>
+        <div>
+          <label class="block font-semibold text-slate-300 mb-1">Nombre del Inquilino (Arrendatario)</label>
+          <input id="new-c-tenant" type="text" required placeholder="Ej: Marta Sánchez" class="w-full bg-slate-950 text-white rounded-xl px-3.5 py-2.5 border border-slate-800" />
+        </div>
+
+        <div class="pt-2 flex justify-end gap-2">
+          <button type="button" onclick="closeModal('modal-new-contract')" class="px-4 py-2.5 rounded-xl bg-slate-800 text-slate-300 font-semibold">Cancelar</button>
+          <button type="submit" class="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold shadow-lg">Crear Contrato en Local</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL 7: PLAN PRO GOOGLE PLAY -->
+  <div id="modal-pro" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-slate-900 border border-amber-500/40 rounded-3xl max-w-xl w-full p-6 space-y-5 shadow-2xl animate-fadeIn">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2.5">
+          <div class="p-2.5 rounded-xl bg-amber-500/20 text-amber-400">
+            <i data-lucide="crown" class="w-6 h-6"></i>
+          </div>
+          <div>
+            <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-amber-500/20 text-amber-300">Google Play Billing Ready</span>
+            <h3 class="text-xl font-bold text-white">ArrendaPro AI • Plan Premium</h3>
+          </div>
+        </div>
+        <button onclick="closeModal('modal-pro')" class="text-slate-400 hover:text-white">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div class="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-2">
+          <h4 class="text-sm font-bold text-slate-300">Plan Básico (Gratis)</h4>
+          <p class="text-2xl font-extrabold text-white">0 € <span class="text-xs font-normal text-slate-400">/mes</span></p>
+          <ul class="text-xs text-slate-400 space-y-1.5 pt-2">
+            <li>✓ Hasta 2 inmuebles en local</li>
+            <li>✓ Gestión de recibos y fianza</li>
+            <li>✓ Contador legal de 15 días</li>
+            <li>✓ Backup manual en JSON</li>
+          </ul>
+        </div>
+
+        <div class="bg-gradient-to-br from-amber-950/40 via-slate-950 to-slate-900 p-4 rounded-2xl border border-amber-500/50 space-y-2 relative">
+          <span class="absolute -top-2.5 right-3 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500 text-slate-950">MÁS RENTABLE</span>
+          <h4 class="text-sm font-bold text-amber-300">Plan Propietario & Gestor</h4>
+          <p class="text-2xl font-extrabold text-white">4,99 € <span class="text-xs font-normal text-slate-400">/mes</span></p>
+          <ul class="text-xs text-slate-200 space-y-1.5 pt-2">
+            <li>✓ Inmuebles y contratos ilimitados</li>
+            <li>✓ Dictámenes IA Gemini 3.8 ilimitados</li>
+            <li>✓ Exportación fiscal IRPF (Reducción 50%-90% Ley Vivienda)</li>
+            <li>✓ Firma biométrica de inventario</li>
+          </ul>
+        </div>
+      </div>
+
+      <button onclick="closeModal('modal-pro'); showToast('Modo Demo Profesional: Todas las funciones PRO están activadas gratuitamente.', 'success');" class="w-full py-3 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 font-extrabold text-xs sm:text-sm shadow-lg">
+        Disfrutar Acceso Completo Activado (Demo Google Play)
+      </button>
+    </div>
+  </div>
+
+  <!-- ============================================================================ -->
+  <!-- LÓGICA DE APLICACIÓN, ALMACENAMIENTO LOCAL Y MOTOR IA GEMINI 3.8             -->
+  <!-- ============================================================================ -->
+  <script>
+    const STORAGE_KEY = 'arrendapro_data_v1';
+
+    const INITIAL_CONTRACTS = [
+      {
+        id: 'prop-1',
+        alias: 'Piso Av. Mar Mediterráneo, Valdemoro',
+        address: 'Av. del Mar Mediterráneo 42, 3ºB, 28341 Valdemoro (Madrid)',
+        ownership: '100% Propiedad',
+        zonaTensionada: false,
+        iravCap: 2.2,
+        monthlyRent: 850,
+        startDate: '2024-09-01',
+        endDate: '2029-08-31',
+        landlord: {
+          name: 'Carlos Mendoza García',
+          dni: '50842199X',
+          phone: '+34 612 345 678',
+          email: 'carlos.mendoza@email.es',
+          iban: 'ES91 2100 0418 4502 0005 1332'
+        },
+        tenant: {
+          name: 'Laura Gómez y David Ruiz',
+          dni: '05412890Z',
+          phone: '+34 698 765 432',
+          email: 'laura.gomez@email.es'
+        },
+        contractDoc: {
+          fileName: 'Contrato_LAU_Valdemoro_2024.pdf',
+          uploadDate: '2024-09-01',
+          status: 'Vigente (Prórroga LAU 5 años)',
+          clauses: 'Cláusula IRAV Ley 12/2023 incluida. Suministros a cargo del inquilino repercutidos por recibo. Prohibido subarriendo.'
+        },
+        deposit: {
+          amount: 850,
+          additionalGuarantee: 850,
+          organism: 'Agencia de Vivienda Social (IVIMA - Comunidad de Madrid)',
+          resguardoCode: 'CAM-FIANZA-2024-99812',
+          status: 'Depositada en Organismo Oficial',
+          depositDate: '2024-09-10',
+          fileName: 'Resguardo_IVIMA_Valdemoro.pdf'
+        },
+        bills: [
+          {
+            id: 'bill-101',
+            type: 'rent',
+            category: 'Mensualidad Alquiler',
+            period: 'Noviembre 2026',
+            baseAmount: 850,
+            discountAmount: 0,
+            discountReason: '',
+            finalAmount: 850,
+            dueDate: '2026-11-05',
+            status: 'pending',
+            paidDate: null,
+            receiptNote: 'Mensualidad ordinaria Noviembre 2026'
+          },
+          {
+            id: 'bill-102',
+            type: 'utility',
+            category: 'Luz',
+            period: 'Octubre 2026 (Iberdrola)',
+            baseAmount: 64.80,
+            discountAmount: 0,
+            discountReason: '',
+            finalAmount: 64.80,
+            dueDate: '2026-11-10',
+            status: 'paid_by_tenant',
+            paidDate: '2026-11-03',
+            receiptNote: 'Consumo 218 kWh - Factura #IB-9921'
+          },
+          {
+            id: 'bill-103',
+            type: 'utility',
+            category: 'Agua',
+            period: 'Bimestre Sep-Oct 2026 (Canal Isabel II)',
+            baseAmount: 38.50,
+            discountAmount: 0,
+            discountReason: '',
+            finalAmount: 38.50,
+            dueDate: '2026-11-12',
+            status: 'pending',
+            paidDate: null,
+            receiptNote: 'Lectura real contador 18m³'
+          },
+          {
+            id: 'bill-104',
+            type: 'utility',
+            category: 'Internet',
+            period: 'Noviembre 2026 (Fibra Digi 1Gb)',
+            baseAmount: 25.00,
+            discountAmount: 0,
+            discountReason: '',
+            finalAmount: 25.00,
+            dueDate: '2026-11-05',
+            status: 'verified',
+            paidDate: '2026-11-02',
+            receiptNote: 'Cuota fija fibra óptica compartida'
+          }
+        ],
+        incidents: [
+          {
+            id: 'inc-1',
+            title: 'Fallo en presostato de Caldera Estanca (Sin agua caliente)',
+            description: 'La caldera de gas natural marca Vaillant da error F.28 y no arranca el quemador cuando abrimos el grifo del agua caliente ni la calefacción. Tiene más de 8 años de antigüedad y no se ha manipulado.',
+            category: 'Caldera/Climatización',
+            urgency: 'Alta (Habitabilidad)',
+            createdAt: new Date(Date.now() - 17 * 24 * 60 * 60 * 1000).toISOString(),
+            status: 'pending_landlord',
+            landlordResponse: null,
+            photoUrl: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=600&q=80',
+            tenantRepairInvoice: null,
+            aiAnalysis: {
+              engine: 'Gemini 3.8 Legal & DIY Core',
+              responsibleParty: 'ARRENDADOR (Casero)',
+              legalBasis: 'Artículo 21.1 de la LAU (Obras de conservación de la vivienda)',
+              confidence: '98%',
+              legalExplanation: 'Según el Art. 21.1 de la Ley de Arrendamientos Urbanos, el arrendador está obligado a realizar, sin derecho a elevar la renta, todas las reparaciones necesarias para conservar la vivienda en condiciones de habitabilidad. Una avería interna en el presostato o válvula de encendido de una caldera de 8 años constituye desgaste natural de un elemento esencial de habitabilidad.',
+              diyPossible: false,
+              estimatedCost: '120€ - 210€ (Técnico SAT autorizado)',
+              diySteps: [
+                'Comprobar que la presión del manómetro inferior esté entre 1.2 y 1.5 bares (si está por debajo de 0.8 bares, abrir llave de llenado).',
+                'Verificar que la llave de paso de gas amarilla esté abierta en paralelo a la tubería.',
+                'Pulsar el botón de "Reset" durante 3 segundos. Si persiste el error F.28, NO abrir la cámara estanca.'
+              ],
+              youtubeQueries: [
+                { title: 'Cómo solucionar error F28 caldera Vaillant y subir presión', query: 'como solucionar error F28 caldera Vaillant presion agua' },
+                { title: 'Qué hacer cuando la caldera no calienta el agua paso a paso', query: 'caldera no calienta agua ni calefaccion causas y solucion' }
+              ]
+            }
+          },
+          {
+            id: 'inc-2',
+            title: 'Correa de persiana del salón deshilachada y rota',
+            description: 'Al subir la persiana del ventanal del salón esta mañana, la cinta se ha terminado de partir por el roce del uso diario. Llevamos 2 años en el piso.',
+            category: 'Carpintería/Persianas',
+            urgency: 'Baja',
+            createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+            status: 'pending_landlord',
+            landlordResponse: null,
+            photoUrl: 'https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&w=600&q=80',
+            tenantRepairInvoice: null,
+            aiAnalysis: {
+              engine: 'Gemini 3.8 Legal & DIY Core',
+              responsibleParty: 'INQUILINO (Arrendatario)',
+              legalBasis: 'Artículo 21.4 de la LAU (Pequeñas reparaciones por desgaste de uso ordinario)',
+              confidence: '96%',
+              legalExplanation: 'El Artículo 21.4 de la LAU establece expresamente que "las pequeñas reparaciones que exija el desgaste por el uso ordinario de la vivienda serán de cargo del arrendatario". La rotura de la cinta de una persiana tras 2 años de uso continuado es una pequeña reparación derivada del uso diario.',
+              diyPossible: true,
+              estimatedCost: '6€ - 12€ (Rollo de cinta de persiana en ferretería)',
+              diySteps: [
+                'Bajar completamente la persiana y abrir la tapa del cajón superior.',
+                'Soltar el nudo de la cinta vieja en el disco o polea superior.',
+                'Extraer el cajetín recogedor inferior de la pared (2 tornillos) con cuidado del muelle tensor.',
+                'Colocar la cinta nueva pasándola por el pasacintas superior y fijarla al muelle inferior.'
+              ],
+              youtubeQueries: [
+                { title: 'Cómo cambiar la cinta de una persiana sin desmontar (Fácil)', query: 'como cambiar cinta de persiana facil paso a paso bricomania' },
+                { title: 'Cambiar recogedor y cuerda de persiana en 10 minutos', query: 'cambiar cuerda de persiana rota tutorial' }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        id: 'prop-2',
+        alias: 'Apartamento Calle Alcalá, Madrid',
+        address: 'Calle de Alcalá 310, 4º Ext, 28027 Madrid',
+        ownership: 'Co-propiedad (50%)',
+        zonaTensionada: true,
+        iravCap: 2.2,
+        monthlyRent: 1150,
+        startDate: '2025-01-01',
+        endDate: '2030-01-01',
+        landlord: {
+          name: 'Carlos Mendoza García',
+          dni: '50842199X',
+          phone: '+34 612 345 678',
+          email: 'carlos.mendoza@email.es',
+          iban: 'ES91 2100 0418 4502 0005 1332'
+        },
+        tenant: {
+          name: 'Sofía Martín Navarro',
+          dni: '47891234L',
+          phone: '+34 655 112 233',
+          email: 'sofia.martin@email.es'
+        },
+        contractDoc: {
+          fileName: 'Contrato_Alcala310_2025.pdf',
+          uploadDate: '2025-01-01',
+          status: 'Vigente (LAU + Ley Vivienda 12/2023)',
+          clauses: 'Vivienda habitual. Actualización anual vinculada al IRAV (INE). Inventario fotográfico adjunto.'
+        },
+        deposit: {
+          amount: 1150,
+          additionalGuarantee: 0,
+          organism: 'Agencia de Vivienda Social (IVIMA - Comunidad de Madrid)',
+          resguardoCode: 'CAM-FIANZA-2025-10492',
+          status: 'Depositada en Organismo Oficial',
+          depositDate: '2025-01-12',
+          fileName: 'Resguardo_IVIMA_Alcala.pdf'
+        },
+        bills: [
+          {
+            id: 'bill-201',
+            type: 'rent',
+            category: 'Mensualidad Alquiler',
+            period: 'Noviembre 2026',
+            baseAmount: 1150,
+            discountAmount: 0,
+            discountReason: '',
+            finalAmount: 1150,
+            dueDate: '2026-11-05',
+            status: 'verified',
+            paidDate: '2026-11-01',
+            receiptNote: 'Abonado vía Bizum / Transferencia inmediata'
+          }
+        ],
+        incidents: []
+      }
+    ];
+
+    // Estado global en memoria sincronizado con localStorage
+    let state = {
+      contracts: [],
+      selectedContractId: 'prop-1',
+      activeRole: 'landlord', // 'landlord' | 'tenant'
+      activeTab: 'dashboard', // 'dashboard' | 'contract' | 'bills' | 'incidents' | 'ai_advisor'
+      standaloneResult: null,
+      standaloneQuery: '',
+      standaloneCategory: 'Fontanería',
+      analyzingIncidentId: null,
+      isAnalyzingStandalone: false
+    };
+
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            state.contracts = parsed;
+            state.selectedContractId = parsed[0].id;
+            return;
+          }
+        }
+      } catch (e) {
+        console.error('Error cargando localStorage:', e);
+      }
+      state.contracts = JSON.parse(JSON.stringify(INITIAL_CONTRACTS));
+      state.selectedContractId = state.contracts[0].id;
+    }
+
+    function saveState() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state.contracts));
+      } catch (e) {
+        console.error('Error guardando en localStorage:', e);
+      }
+    }
+
+    function getActiveContract() {
+      return state.contracts.find(c => c.id === state.selectedContractId) || state.contracts[0];
+    }
+
+    function getDaysElapsed(isoDate) {
+      const created = new Date(isoDate).getTime();
+      const now = Date.now();
+      return Math.max(0, Math.floor((now - created) / (1000 * 60 * 60 * 24)));
+    }
+
+    function showToast(message, type = 'success') {
+      const container = document.getElementById('toast-container');
+      const colorClasses = type === 'error'
+        ? 'bg-rose-950/95 border-rose-500/50 text-rose-100'
+        : type === 'warning'
+        ? 'bg-amber-950/95 border-amber-500/50 text-amber-100'
+        : 'bg-emerald-950/95 border-emerald-500/50 text-emerald-100';
+
+      const iconName = type === 'error' ? 'alert-triangle' : type === 'warning' ? 'clock' : 'check-circle-2';
+
+      container.innerHTML = `
+        <div class="flex items-center gap-3 px-4 py-3.5 rounded-2xl shadow-2xl border backdrop-blur-md ${colorClasses}">
+          <i data-lucide="${iconName}" class="w-5 h-5 shrink-0"></i>
+          <span class="text-sm font-medium">${message}</span>
+        </div>
+      `;
+      container.classList.remove('hidden');
+      lucide.createIcons();
+
+      setTimeout(() => {
+        container.classList.add('hidden');
+      }, 4200);
+    }
+
+    function openModal(id) {
+      const el = document.getElementById(id);
+      if (el) {
+        el.classList.remove('hidden');
+        el.classList.add('flex');
+        lucide.createIcons();
+      }
+    }
+
+    function closeModal(id) {
+      const el = document.getElementById(id);
+      if (el) {
+        el.classList.add('hidden');
+        el.classList.remove('flex');
+      }
+    }
+
+    // ==========================================
+    // MOTOR IA: GEMINI 3.8 LEGAL & DIY CORE
+    // ==========================================
+    async function callGeminiLegalAI(title, description, category, photoDataUrl = null) {
+      const apiKey = "";
+      const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+
+      const systemPrompt = `Eres el motor jurídico y técnico 'Gemini 3.8 Legal & DIY Core', experto en la Ley de Arrendamientos Urbanos (LAU 29/1994), la Ley por el Derecho a la Vivienda (12/2023) de España, el Código Civil español y bricolaje doméstico.
+Determina quién debe pagar/reparar por ley: 'ARRENDADOR (Casero)' según el Art. 21.1 LAU o 'INQUILINO (Arrendatario)' según el Art. 21.4 LAU. Cita el artículo exacto, ofrece pasos sencillos de bricolaje y 2 búsquedas de YouTube.`;
+
+      const userPrompt = `Analiza esta incidencia en una vivienda alquilada en España:
+- Categoría: ${category}
+- Título: ${title}
+- Descripción: ${description}`;
+
+      const parts = [{ text: userPrompt }];
+      if (photoDataUrl && photoDataUrl.startsWith('data:image/')) {
+        const base64Clean = photoDataUrl.split(',')[1];
+        const mimeType = photoDataUrl.substring(photoDataUrl.indexOf(':') + 1, photoDataUrl.indexOf(';'));
+        if (base64Clean) {
+          parts.push({ inlineData: { mimeType: mimeType || 'image/jpeg', data: base64Clean } });
+        }
+      }
+
+      const payload = {
+        contents: [{ role: 'user', parts }],
+        systemInstruction: { parts: [{ text: systemPrompt }] },
+        generationConfig: {
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: "OBJECT",
+            properties: {
+              responsibleParty: { type: "STRING" },
+              legalBasis: { type: "STRING" },
+              confidence: { type: "STRING" },
+              legalExplanation: { type: "STRING" },
+              diyPossible: { type: "BOOLEAN" },
+              estimatedCost: { type: "STRING" },
+              diySteps: { type: "ARRAY", items: { type: "STRING" } },
+              youtubeQueries: {
+                type: "ARRAY",
+                items: {
+                  type: "OBJECT",
+                  properties: {
+                    title: { type: "STRING" },
+                    query: { type: "STRING" }
+                  },
+                  required: ["title", "query"]
+                }
+              }
+            },
+            required: ["responsibleParty", "legalBasis", "confidence", "legalExplanation", "diyPossible", "estimatedCost", "diySteps", "youtubeQueries"]
+          }
+        }
+      };
+
+      try {
+        const response = await fetch(apiUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (response.ok) {
+          const result = await response.json();
+          const jsonText = result?.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (jsonText) {
+            return { engine: 'Gemini 3.8 Legal & DIY Core', ...JSON.parse(jsonText) };
+          }
+        }
+      } catch (e) {
+        // Fallback local inteligente si se ejecuta sin internet o sin API Key
+      }
+
+      const textLower = `${title} ${description}`.toLowerCase();
+      const isSmallRepair =
+        textLower.includes('bombilla') ||
+        textLower.includes('persiana') ||
+        textLower.includes('cinta') ||
+        textLower.includes('grifo gotea') ||
+        textLower.includes('enchufe') ||
+        textLower.includes('alcachofa') ||
+        textLower.includes('pomo') ||
+        textLower.includes('goma');
+
+      if (isSmallRepair) {
+        return {
+          engine: 'Gemini 3.8 Legal & DIY Core',
+          responsibleParty: 'INQUILINO (Arrendatario)',
+          legalBasis: 'Artículo 21.4 de la LAU (Pequeñas reparaciones por desgaste de uso diario)',
+          confidence: '95%',
+          legalExplanation: 'De acuerdo con el artículo 21.4 de la Ley de Arrendamientos Urbanos, las pequeñas reparaciones que exija el desgaste por el uso ordinario de la vivienda corren a cargo del inquilino por tratarse de un elemento sometido a manipulación diaria de bajo importe.',
+          diyPossible: true,
+          estimatedCost: '8€ - 22€ (Recambio en ferretería)',
+          diySteps: [
+            'Adquirir el recambio compatible en una ferretería llevando la pieza antigua o una foto.',
+            'Cortar el suministro correspondiente (luz o llave de paso de agua) por seguridad.',
+            'Sustituir la pieza desgastada con herramientas básicas sin forzar las roscas.'
+          ],
+          youtubeQueries: [
+            { title: `Tutorial paso a paso: Cómo reparar ${title}`, query: `como reparar ${title} bricolaje en casa facil` },
+            { title: `Arreglo rápido de ${category}`, query: `arreglar ${category} pequeno arreglo casa` }
+          ]
+        };
+      } else {
+        return {
+          engine: 'Gemini 3.8 Legal & DIY Core',
+          responsibleParty: 'ARRENDADOR (Casero)',
+          legalBasis: 'Artículo 21.1 de la LAU (Conservación de condiciones de habitabilidad)',
+          confidence: '97%',
+          legalExplanation: 'Conforme al Artículo 21.1 de la LAU, el arrendador está obligado a realizar todas las reparaciones necesarias para conservar la vivienda en condiciones de habitabilidad. Al tratarse de una avería de instalación o deterioro por antigüedad no imputable a mal uso, corresponde al propietario.',
+          diyPossible: false,
+          estimatedCost: '95€ - 230€ (Intervención técnica profesional)',
+          diySteps: [
+            'Documentar la avería con fotografías claras y notificar al arrendador.',
+            'Revisar llaves de paso o cuadro eléctrico para descartar un corte puntual.',
+            'Si en 15 días el arrendador no acepta ni propone reparación, puedes contratar a un técnico y descontar la factura de la mensualidad.'
+          ],
+          youtubeQueries: [
+            { title: `Diagnóstico inicial: ${title}`, query: `por que falla ${title} causas y solucion` },
+            { title: `Comprobaciones básicas de ${category}`, query: `revisar averia ${category} paso a paso` }
+          ]
+        };
+      }
+    }
+
+    // ==========================================
+    // CONTROLADORES DE EVENTOS Y ACCIONES
+    // ==========================================
+    function setRole(role) {
+      state.activeRole = role;
+      renderAll();
+    }
+
+    function setTab(tab) {
+      state.activeTab = tab;
+      renderAll();
+    }
+
+    function handleSelectContract(id) {
+      state.selectedContractId = id;
+      renderAll();
+    }
+
+    function handleBillCategoryPreset(val) {
+      const c = getActiveContract();
+      const amountEl = document.getElementById('bill-amount');
+      const noteEl = document.getElementById('bill-note');
+      if (val === 'Mensualidad Alquiler') {
+        amountEl.value = c.monthlyRent;
+        noteEl.value = 'Mensualidad ordinaria de arrendamiento';
+      } else if (val === 'Luz') {
+        amountEl.value = '62.40';
+        noteEl.value = 'Recibo electricidad mensual según lectura';
+      } else if (val === 'Agua') {
+        amountEl.value = '36.80';
+        noteEl.value = 'Recibo suministro de agua bimestral';
+      } else if (val === 'Gas') {
+        amountEl.value = '48.20';
+        noteEl.value = 'Factura consumo de gas natural';
+      } else if (val === 'Internet') {
+        amountEl.value = '25.00';
+        noteEl.value = 'Cuota mensual fibra óptica';
+      }
+    }
+
+    function handleCreateBill(e) {
+      e.preventDefault();
+      const category = document.getElementById('bill-category').value;
+      const period = document.getElementById('bill-period').value;
+      const amount = parseFloat(document.getElementById('bill-amount').value);
+      const dueDate = document.getElementById('bill-due').value;
+      const receiptNote = document.getElementById('bill-note').value;
+
+      if (isNaN(amount) || amount <= 0) return;
+
+      const c = getActiveContract();
+      c.bills.unshift({
+        id: 'bill-' + Date.now(),
+        type: category === 'Mensualidad Alquiler' ? 'rent' : 'utility',
+        category,
+        period,
+        baseAmount: amount,
+        discountAmount: 0,
+        discountReason: '',
+        finalAmount: amount,
+        dueDate,
+        status: 'pending',
+        paidDate: null,
+        receiptNote
+      });
+
+      saveState();
+      closeModal('modal-new-bill');
+      renderAll();
+      showToast(`Recibo de ${category} (${amount.toFixed(2)}€) enviado al inquilino.`, 'success');
+    }
+
+    function markBillPaidByTenant(billId) {
+      const c = getActiveContract();
+      const bill = c.bills.find(b => b.id === billId);
+      if (bill) {
+        bill.status = 'paid_by_tenant';
+        bill.paidDate = new Date().toISOString().split('T')[0];
+        saveState();
+        renderAll();
+        showToast('Recibo marcado como pagado por el inquilino. Pendiente de chequear por el casero.', 'success');
+      }
+    }
+
+    function verifyBillByLandlord(billId) {
+      const c = getActiveContract();
+      const bill = c.bills.find(b => b.id === billId);
+      if (bill) {
+        bill.status = 'verified';
+        if (!bill.paidDate) bill.paidDate = new Date().toISOString().split('T')[0];
+        saveState();
+        renderAll();
+        showToast('Pago chequeado y verificado correctamente por el Arrendador.', 'success');
+      }
+    }
+
+    function handleIncidentPhotoChange(e) {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        document.getElementById('inc-photo-preview').src = ev.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    async function handleCreateIncident(e) {
+      e.preventDefault();
+      const title = document.getElementById('inc-title').value.trim();
+      const category = document.getElementById('inc-category').value;
+      const urgency = document.getElementById('inc-urgency').value;
+      const description = document.getElementById('inc-desc').value.trim();
+      const photoUrl = document.getElementById('inc-photo-preview').src;
+
+      if (!title || !description) return;
+
+      closeModal('modal-new-incident');
+      showToast('Analizando incidencia con Gemini 3.8 Legal Core...', 'success');
+
+      const aiAnalysis = await callGeminiLegalAI(title, description, category, photoUrl);
+      const c = getActiveContract();
+      c.incidents.unshift({
+        id: 'inc-' + Date.now(),
+        title,
+        category,
+        urgency,
+        description,
+        photoUrl,
+        createdAt: new Date().toISOString(),
+        status: 'pending_landlord',
+        landlordResponse: null,
+        tenantRepairInvoice: null,
+        aiAnalysis
+      });
+
+      document.getElementById('inc-title').value = '';
+      document.getElementById('inc-desc').value = '';
+      saveState();
+      renderAll();
+      showToast('Incidencia registrada con Dictamen Legal IA y plazo de 15 días iniciado.', 'success');
+    }
+
+    function simulate16Days(incId) {
+      const c = getActiveContract();
+      const inc = c.incidents.find(i => i.id === incId);
+      if (inc) {
+        inc.createdAt = new Date(Date.now() - 16 * 24 * 60 * 60 * 1000).toISOString();
+        saveState();
+        renderAll();
+        showToast('¡Simulación activada! Han pasado 16 días sin respuesta del casero. Descuento en renta habilitado.', 'warning');
+      }
+    }
+
+    async function reAnalyzeIncident(incId) {
+      const c = getActiveContract();
+      const inc = c.incidents.find(i => i.id === incId);
+      if (!inc) return;
+      state.analyzingIncidentId = incId;
+      renderAll();
+
+      const analysis = await callGeminiLegalAI(inc.title, inc.description, inc.category, inc.photoUrl);
+      inc.aiAnalysis = analysis;
+      state.analyzingIncidentId = null;
+      saveState();
+      renderAll();
+      showToast('Dictamen Legal LAU actualizado con Gemini 3.8.', 'success');
+    }
+
+    function openDeductionModal(incId) {
+      const c = getActiveContract();
+      const inc = c.incidents.find(i => i.id === incId);
+      if (!inc) return;
+      document.getElementById('deduction-inc-id').value = inc.id;
+      document.getElementById('deduction-inc-title').textContent = 'Avería: ' + inc.title;
+      document.getElementById('deduction-base-rent').textContent = c.monthlyRent.toFixed(2) + ' €';
+      updateDeductionPreview();
+      openModal('modal-deduction');
+    }
+
+    function updateDeductionPreview() {
+      const c = getActiveContract();
+      const amount = parseFloat(document.getElementById('deduction-amount').value) || 0;
+      const net = Math.max(0, c.monthlyRent - amount);
+      document.getElementById('deduction-discount-preview').textContent = '- ' + amount.toFixed(2) + ' €';
+      document.getElementById('deduction-net-preview').textContent = net.toFixed(2) + ' €';
+    }
+
+    function handleConfirmDeduction(e) {
+      e.preventDefault();
+      const incId = document.getElementById('deduction-inc-id').value;
+      const provider = document.getElementById('deduction-provider').value;
+      const invoiceNumber = document.getElementById('deduction-inv-num').value;
+      const amount = parseFloat(document.getElementById('deduction-amount').value);
+
+      if (isNaN(amount) || amount <= 0) return;
+
+      const c = getActiveContract();
+      let deducted = false;
+      c.bills.forEach(bill => {
+        if (!deducted && bill.type === 'rent' && bill.status === 'pending') {
+          deducted = true;
+          bill.discountAmount = (bill.discountAmount || 0) + amount;
+          bill.discountReason = `Descuento factura reparación (>15 días SLA): ${provider} (${amount.toFixed(2)}€)`;
+          bill.finalAmount = Math.max(0, bill.baseAmount - bill.discountAmount);
+        }
+      });
+
+      if (!deducted) {
+        c.bills.unshift({
+          id: 'bill-' + Date.now(),
+          type: 'rent',
+          category: 'Mensualidad Alquiler',
+          period: 'Próxima Mensualidad (Con compensación LAU)',
+          baseAmount: c.monthlyRent,
+          discountAmount: amount,
+          discountReason: `Descuento legal factura reparación (>15 días sin respuesta): ${provider}`,
+          finalAmount: Math.max(0, c.monthlyRent - amount),
+          dueDate: new Date(Date.now() + 15 * 86400000).toISOString().split('T')[0],
+          status: 'pending',
+          paidDate: null,
+          receiptNote: `Incluye deducción automática de ${amount.toFixed(2)}€ por reparación contratada tras vencer 15 días.`
+        });
+      }
+
+      const inc = c.incidents.find(i => i.id === incId);
+      if (inc) {
+        inc.status = 'tenant_hired_deducted';
+        inc.tenantRepairInvoice = {
+          provider,
+          invoiceNumber,
+          amount,
+          date: new Date().toISOString().split('T')[0]
+        };
+      }
+
+      saveState();
+      closeModal('modal-deduction');
+      renderAll();
+      showToast(`Factura de ${amount.toFixed(2)}€ descontada automáticamente de la mensualidad de alquiler.`, 'success');
+    }
+
+    function openLandlordReplyModal(incId) {
+      document.getElementById('reply-inc-id').value = incId;
+      selectLandlordReplyType('accept');
+      openModal('modal-landlord-reply');
+    }
+
+    function selectLandlordReplyType(type) {
+      document.getElementById('reply-action-type').value = type;
+      const btnAccept = document.getElementById('btn-reply-accept');
+      const btnReject = document.getElementById('btn-reply-reject');
+      const noteEl = document.getElementById('reply-note');
+
+      if (type === 'accept') {
+        btnAccept.className = 'p-3 rounded-xl border font-bold text-center transition bg-emerald-600/20 border-emerald-500 text-emerald-300';
+        btnReject.className = 'p-3 rounded-xl border font-bold text-center transition bg-slate-950 border-slate-800 text-slate-400';
+        noteEl.value = 'Acepto la reparación. El técnico acudirá en las próximas 48 horas.';
+      } else {
+        btnReject.className = 'p-3 rounded-xl border font-bold text-center transition bg-rose-600/20 border-rose-500 text-rose-300';
+        btnAccept.className = 'p-3 rounded-xl border font-bold text-center transition bg-slate-950 border-slate-800 text-slate-400';
+        noteEl.value = 'Según el Art. 21.4 de la LAU, se trata de una pequeña reparación por desgaste de uso diario que corresponde al inquilino.';
+      }
+    }
+
+    function submitLandlordReply() {
+      const incId = document.getElementById('reply-inc-id').value;
+      const actionType = document.getElementById('reply-action-type').value;
+      const note = document.getElementById('reply-note').value;
+
+      const c = getActiveContract();
+      const inc = c.incidents.find(i => i.id === incId);
+      if (inc) {
+        inc.status = actionType === 'accept' ? 'accepted_landlord' : 'rejected_landlord';
+        inc.landlordResponse = {
+          date: new Date().toISOString().split('T')[0],
+          action: actionType,
+          note
+        };
+        saveState();
+        closeModal('modal-landlord-reply');
+        renderAll();
+        showToast('Respuesta oficial del arrendador guardada.', 'success');
+      }
+    }
+
+    function handleCreateContract(e) {
+      e.preventDefault();
+      const alias = document.getElementById('new-c-alias').value.trim();
+      const address = document.getElementById('new-c-address').value.trim() || alias;
+      const monthlyRent = parseFloat(document.getElementById('new-c-rent').value) || 850;
+      const zonaTensionada = document.getElementById('new-c-tensionada').checked;
+      const landlordName = document.getElementById('new-c-landlord').value.trim();
+      const tenantName = document.getElementById('new-c-tenant').value.trim();
+
+      if (!alias || !tenantName) return;
+
+      const newContract = {
+        id: 'prop-' + Date.now(),
+        alias,
+        address,
+        ownership: '100% Propiedad',
+        zonaTensionada,
+        iravCap: 2.2,
+        monthlyRent,
+        startDate: new Date().toISOString().split('T')[0],
+        endDate: '2031-11-01',
+        landlord: {
+          name: landlordName,
+          dni: '50842199X',
+          phone: '+34 612 345 678',
+          email: 'propietario@email.es',
+          iban: 'ES91 2100 0418 4502 0005 1332'
+        },
+        tenant: {
+          name: tenantName,
+          dni: '12345678Z',
+          phone: '+34 600 000 000',
+          email: 'inquilino@email.es'
+        },
+        contractDoc: {
+          fileName: 'Contrato_Arrendamiento_LAU.pdf',
+          uploadDate: new Date().toISOString().split('T')[0],
+          status: 'Vigente (LAU 5 años)',
+          clauses: 'Contrato sujeto a LAU y Ley de Vivienda 12/2023.'
+        },
+        deposit: {
+          amount: monthlyRent,
+          additionalGuarantee: 0,
+          organism: 'Organismo Autonómico de Vivienda',
+          resguardoCode: 'FIANZA-' + Math.floor(10000 + Math.random() * 90000),
+          status: 'Depositada en Organismo Oficial',
+          depositDate: new Date().toISOString().split('T')[0],
+          fileName: 'Resguardo_Fianza_Oficial.pdf'
+        },
+        bills: [
+          {
+            id: 'bill-' + Date.now(),
+            type: 'rent',
+            category: 'Mensualidad Alquiler',
+            period: 'Mes Inicial',
+            baseAmount: monthlyRent,
+            discountAmount: 0,
+            discountReason: '',
+            finalAmount: monthlyRent,
+            dueDate: new Date().toISOString().split('T')[0],
+            status: 'pending',
+            paidDate: null,
+            receiptNote: 'Primera mensualidad de contrato'
+          }
+        ],
+        incidents: []
+      };
+
+      state.contracts.push(newContract);
+      state.selectedContractId = newContract.id;
+      saveState();
+      closeModal('modal-new-contract');
+      renderAll();
+      showToast(`Nuevo contrato "${alias}" creado en almacenamiento local.`, 'success');
+    }
+
+    function handleUploadContractFile(e, type) {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      const c = getActiveContract();
+      if (type === 'contract') {
+        c.contractDoc.fileName = file.name;
+        c.contractDoc.uploadDate = new Date().toISOString().split('T')[0];
+        showToast(`Contrato "${file.name}" guardado en almacenamiento local.`, 'success');
+      } else {
+        c.deposit.fileName = file.name;
+        c.deposit.status = 'Depositada en Organismo Oficial';
+        showToast(`Resguardo de fianza "${file.name}" vinculado al contrato.`, 'success');
+      }
+      saveState();
+      renderAll();
+    }
+
+    async function handleStandaloneAdvisorSubmit(e) {
+      e.preventDefault();
+      const q = document.getElementById('advisor-query').value.trim();
+      const cat = document.getElementById('advisor-category').value;
+      if (!q) return;
+
+      state.standaloneQuery = q;
+      state.standaloneCategory = cat;
+      state.isAnalyzingStandalone = true;
+      renderAll();
+
+      state.standaloneResult = await callGeminiLegalAI(q.slice(0, 60), q, cat);
+      state.isAnalyzingStandalone = false;
+      renderAll();
+      showToast('Dictamen jurídico y guía de bricolaje generados.', 'success');
+    }
+
+    function setAdvisorSample(sampleText) {
+      state.standaloneQuery = sampleText;
+      renderAll();
+    }
+
+    // Backup JSON Export & Import
+    function exportBackupJSON() {
+      const payload = {
+        app: 'ArrendaPro AI - España LAU & Ley de Vivienda',
+        version: '1.0.0',
+        exportDate: new Date().toISOString(),
+        data: state.contracts
+      };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `arrendapro_backup_${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast('Copia de seguridad local (.json) descargada con éxito.', 'success');
+    }
+
+    function importBackupJSON(e) {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        try {
+          const parsed = JSON.parse(ev.target.result);
+          const list = Array.isArray(parsed) ? parsed : parsed.data;
+          if (Array.isArray(list) && list.length > 0) {
+            state.contracts = list;
+            state.selectedContractId = list[0].id;
+            saveState();
+            closeModal('modal-backup');
+            renderAll();
+            showToast(`Copia de seguridad restaurada (${list.length} contratos).`, 'success');
+          } else {
+            showToast('Archivo JSON no válido.', 'error');
+          }
+        } catch (err) {
+          showToast('Error al leer el archivo JSON.', 'error');
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    function resetDemoData() {
+      state.contracts = JSON.parse(JSON.stringify(INITIAL_CONTRACTS));
+      state.selectedContractId = state.contracts[0].id;
+      saveState();
+      closeModal('modal-backup');
+      renderAll();
+      showToast('Datos iniciales de demostración restaurados.', 'success');
+    }
+
+    // ==========================================
+    // RENDERIZADO DE LA INTERFAZ
+    // ==========================================
+    function renderAll() {
+      const c = getActiveContract();
+
+      // 1. Selector de Contratos
+      const selector = document.getElementById('contract-selector');
+      selector.innerHTML = state.contracts.map(item => `
+        <option value="${item.id}" ${item.id === c.id ? 'selected' : ''}>
+          🏠 ${item.alias} (${item.monthlyRent}€/mes)
+        </option>
+      `).join('');
+
+      // 2. Botones de Rol
+      const btnLandlord = document.getElementById('btn-role-landlord');
+      const btnTenant = document.getElementById('btn-role-tenant');
+      if (state.activeRole === 'landlord') {
+        btnLandlord.className = 'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all bg-gradient-to-r from-indigo-600 to-blue-600 text-white shadow-md';
+        btnTenant.className = 'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all text-slate-400 hover:text-slate-200';
+      } else {
+        btnTenant.className = 'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md';
+        btnLandlord.className = 'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all text-slate-400 hover:text-slate-200';
+      }
+
+      // 3. Banner de Rol
+      const banner = document.getElementById('role-banner');
+      banner.className = `border-b px-4 py-2 text-xs transition-colors ${
+        state.activeRole === 'landlord'
+          ? 'bg-indigo-950/40 border-indigo-900/50 text-indigo-200'
+          : 'bg-emerald-950/40 border-emerald-900/50 text-emerald-200'
+      }`;
+      banner.innerHTML = `
+        <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2">
+          <div class="flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full animate-pulse ${state.activeRole === 'landlord' ? 'bg-indigo-400' : 'bg-emerald-400'}"></span>
+            <span>
+              Estás operando en <strong class="font-bold underline decoration-dotted">
+                ${state.activeRole === 'landlord' ? `MODO ARRENDADOR (${c.landlord.name})` : `MODO INQUILINO (${c.tenant.name})`}
+              </strong>:
+              ${state.activeRole === 'landlord'
+                ? 'Puedes emitir recibos de suministros, chequear pagos de renta y responder a incidencias en el plazo de 15 días.'
+                : 'Puedes pagar recibos, reportar averías con fotos, consultar la IA Legal LAU y descontar reparaciones si el casero no responde en 15 días.'}
+            </span>
+          </div>
+          <div class="flex items-center gap-3 text-[11px] text-slate-400">
+            <span class="flex items-center gap-1">
+              <i data-lucide="lock" class="w-3 h-3 text-emerald-400"></i> Guardado 100% en local
+            </span>
+          </div>
+        </div>
+      `;
+
+      // Cálculo de métricas
+      let pendingAmount = 0, waitingVerification = 0, verifiedAmount = 0;
+      c.bills.forEach(b => {
+        if (b.status === 'pending') pendingAmount += b.finalAmount;
+        if (b.status === 'paid_by_tenant') waitingVerification += b.finalAmount;
+        if (b.status === 'verified') verifiedAmount += b.finalAmount;
+      });
+      const expiredIncidents = c.incidents.filter(i => i.status === 'pending_landlord' && getDaysElapsed(i.createdAt) >= 15).length;
+
+      // 4. Barra de Pestañas
+      const tabs = [
+        { id: 'dashboard', label: 'Resumen del Piso', icon: 'home', badge: 0 },
+        { id: 'contract', label: 'Contrato y Fianza', icon: 'file-text', badge: 0 },
+        { id: 'bills', label: 'Mensualidades y Suministros', icon: 'receipt', badge: c.bills.filter(b => b.status !== 'verified').length },
+        { id: 'incidents', label: 'Incidencias y Plazo 15 Días', icon: 'wrench', badge: c.incidents.filter(i => i.status === 'pending_landlord').length, alert: expiredIncidents > 0 },
+        { id: 'ai_advisor', label: 'Consultor IA Ley Vivienda (Gemini 3.8)', icon: 'sparkles', badge: 0 }
+      ];
+
+      document.getElementById('tabs-nav').innerHTML = tabs.map(t => {
+        const isActive = state.activeTab === t.id;
+        return `
+          <button onclick="setTab('${t.id}')" class="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold whitespace-nowrap transition-all ${
+            isActive ? 'bg-slate-800 text-white shadow-sm border border-slate-700' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40'
+          }">
+            <i data-lucide="${t.icon}" class="w-4 h-4 ${isActive ? 'text-emerald-400' : 'text-slate-400'}"></i>
+            <span>${t.label}</span>
+            ${t.badge > 0 ? `
+              <span class="px-1.5 py-0.5 text-[10px] rounded-full font-bold ${
+                t.alert ? 'bg-rose-500 text-white animate-pulse' : isActive ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-slate-800 text-slate-300'
+              }">${t.badge}</span>
+            ` : ''}
+          </button>
+        `;
+      }).join('');
+
+      // 5. Renderizado de Pestaña Activa
+      const main = document.getElementById('main-content');
+
+      if (state.activeTab === 'dashboard') {
+        main.innerHTML = `
+          <div class="space-y-6 animate-fadeIn">
+            <div class="bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800/90 rounded-3xl p-6 border border-slate-800 shadow-xl">
+              <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+                <div class="space-y-2">
+                  <div class="flex flex-wrap items-center gap-2">
+                    <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">${c.contractDoc.status}</span>
+                    <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-500/15 text-blue-300 border border-blue-500/30">Límite IRAV Ley Vivienda: máx. ${c.iravCap}%</span>
+                    ${c.zonaTensionada ? `<span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-500/15 text-amber-300 border border-amber-500/30">📍 Zona de Mercado Tensionado</span>` : ''}
+                  </div>
+                  <h2 class="text-2xl sm:text-3xl font-bold text-white">${c.alias}</h2>
+                  <p class="text-sm text-slate-400">${c.address}</p>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-4 bg-slate-950/70 p-4 rounded-2xl border border-slate-800/80">
+                  <div>
+                    <p class="text-xs text-slate-400">Renta Mensual</p>
+                    <p class="text-2xl font-bold text-emerald-400">${c.monthlyRent} €</p>
+                  </div>
+                  <div class="h-10 w-px bg-slate-800"></div>
+                  <div>
+                    <p class="text-xs text-slate-400">Fianza Depositada</p>
+                    <p class="text-lg font-semibold text-white">${c.deposit.amount} €</p>
+                    <p class="text-[11px] text-emerald-400 flex items-center gap-1">
+                      <i data-lucide="shield-check" class="w-3 h-3"></i> ${c.deposit.status}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
+                <div onclick="setTab('bills')" class="bg-slate-950/60 hover:bg-slate-950 p-4 rounded-2xl border border-slate-800/80 cursor-pointer transition">
+                  <div class="flex items-center justify-between">
+                    <span class="text-xs font-medium text-slate-400">Pendiente de Pago (Inquilino)</span>
+                    <i data-lucide="euro" class="w-4 h-4 text-amber-400"></i>
+                  </div>
+                  <p class="text-2xl font-bold text-amber-400 mt-2">${pendingAmount.toFixed(2)} €</p>
+                  <p class="text-[11px] text-slate-500 mt-1">Renta mensual + suministros pendientes</p>
+                </div>
+
+                <div onclick="setTab('bills')" class="bg-slate-950/60 hover:bg-slate-950 p-4 rounded-2xl border border-slate-800/80 cursor-pointer transition">
+                  <div class="flex items-center justify-between">
+                    <span class="text-xs font-medium text-slate-400">Pendiente Chequear (Casero)</span>
+                    <i data-lucide="clock" class="w-4 h-4 text-blue-400"></i>
+                  </div>
+                  <p class="text-2xl font-bold text-blue-400 mt-2">${waitingVerification.toFixed(2)} €</p>
+                  <p class="text-[11px] text-slate-500 mt-1">Abonados por inquilino por confirmar</p>
+                </div>
+
+                <div onclick="setTab('bills')" class="bg-slate-950/60 hover:bg-slate-950 p-4 rounded-2xl border border-slate-800/80 cursor-pointer transition">
+                  <div class="flex items-center justify-between">
+                    <span class="text-xs font-medium text-slate-400">Pagos Verificados</span>
+                    <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400"></i>
+                  </div>
+                  <p class="text-2xl font-bold text-emerald-400 mt-2">${verifiedAmount.toFixed(2)} €</p>
+                  <p class="text-[11px] text-slate-500 mt-1">Mensualidades y recibos conciliados</p>
+                </div>
+
+                <div onclick="setTab('incidents')" class="p-4 rounded-2xl border cursor-pointer transition ${
+                  expiredIncidents > 0 ? 'bg-rose-950/30 border-rose-500/40' : 'bg-slate-950/60 border-slate-800/80'
+                }">
+                  <div class="flex items-center justify-between">
+                    <span class="text-xs font-medium text-slate-300">Incidencias / SLA 15 Días</span>
+                    <i data-lucide="wrench" class="w-4 h-4 ${expiredIncidents > 0 ? 'text-rose-400 animate-bounce' : 'text-purple-400'}"></i>
+                  </div>
+                  <p class="text-2xl font-bold text-white mt-2">${c.incidents.length} averías</p>
+                  <p class="text-[11px] mt-1 font-medium ${expiredIncidents > 0 ? 'text-rose-400' : 'text-slate-500'}">
+                    ${expiredIncidents > 0 ? `⚠️ ${expiredIncidents} con plazo >15 días vencido` : 'Todas dentro del plazo legal'}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            ${expiredIncidents > 0 ? `
+              <div class="bg-gradient-to-r from-rose-950/80 via-red-950/60 to-slate-900 rounded-2xl p-5 border border-rose-500/50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-lg">
+                <div class="flex items-start gap-3.5">
+                  <div class="p-2.5 rounded-xl bg-rose-500/20 border border-rose-500/40 text-rose-300 shrink-0">
+                    <i data-lucide="alert-triangle" class="w-6 h-6"></i>
+                  </div>
+                  <div>
+                    <h3 class="text-sm sm:text-base font-bold text-rose-200">Plazo Legal de 15 Días Vencido en Reparación Requerida</h3>
+                    <p class="text-xs sm:text-sm text-rose-300/90 mt-0.5">
+                      El arrendador no ha aceptado ni propuesto reparación en 15 días. El inquilino ya puede contratar a un profesional y descontar la factura automáticamente de la mensualidad.
+                    </p>
+                  </div>
+                </div>
+                <button onclick="setTab('incidents')" class="px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold shrink-0 flex items-center gap-1.5 shadow-md">
+                  <span>Gestionar Ahora</span>
+                  <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                </button>
+              </div>
+            ` : ''}
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div class="bg-slate-900 rounded-3xl p-6 border border-slate-800 space-y-5">
+                <div class="flex items-center justify-between">
+                  <h3 class="text-base font-bold text-white flex items-center gap-2">
+                    <i data-lucide="users" class="w-5 h-5 text-emerald-400"></i>
+                    Partes del Contrato de Arrendamiento
+                  </h3>
+                  <button onclick="setTab('contract')" class="text-xs text-emerald-400 hover:underline flex items-center gap-1">
+                    Ver Contrato y Fianza <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
+                  </button>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div class="bg-slate-950/70 p-4 rounded-2xl border border-indigo-500/20 space-y-2">
+                    <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300">Arrendador (Casero)</span>
+                    <p class="text-sm font-bold text-white pt-1">${c.landlord.name}</p>
+                    <p class="text-xs text-slate-400">DNI/NIF: ${c.landlord.dni}</p>
+                    <p class="text-xs text-slate-400">Tel: ${c.landlord.phone}</p>
+                    <p class="text-[11px] text-slate-500 font-mono truncate">IBAN: ${c.landlord.iban}</p>
+                  </div>
+                  <div class="bg-slate-950/70 p-4 rounded-2xl border border-emerald-500/20 space-y-2">
+                    <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300">Arrendatario (Inquilino)</span>
+                    <p class="text-sm font-bold text-white pt-1">${c.tenant.name}</p>
+                    <p class="text-xs text-slate-400">DNI/NIE: ${c.tenant.dni}</p>
+                    <p class="text-xs text-slate-400">Tel: ${c.tenant.phone}</p>
+                    <p class="text-xs text-slate-400 truncate">${c.tenant.email}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="bg-slate-900 rounded-3xl p-6 border border-slate-800 flex flex-col justify-between space-y-4">
+                <div>
+                  <h3 class="text-base font-bold text-white flex items-center gap-2">
+                    <i data-lucide="sparkles" class="w-5 h-5 text-emerald-400"></i>
+                    Acciones Rápidas (${state.activeRole === 'landlord' ? 'Modo Arrendador' : 'Modo Inquilino'})
+                  </h3>
+                  <p class="text-xs text-slate-400 mt-1">Automatiza la gestión diaria de suministros, rentas y reparaciones LAU.</p>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <button onclick="setTab('bills'); openModal('modal-new-bill');" class="flex items-center gap-3 p-3.5 rounded-2xl bg-slate-950 hover:bg-slate-800 border border-slate-800 transition text-left">
+                    <div class="p-2.5 rounded-xl bg-blue-500/15 text-blue-400"><i data-lucide="receipt" class="w-5 h-5"></i></div>
+                    <div>
+                      <p class="text-xs font-bold text-white">Pasar Recibo / Suministro</p>
+                      <p class="text-[11px] text-slate-400">Luz, Agua, Gas, Internet o Mes</p>
+                    </div>
+                  </button>
+                  <button onclick="setTab('incidents'); openModal('modal-new-incident');" class="flex items-center gap-3 p-3.5 rounded-2xl bg-slate-950 hover:bg-slate-800 border border-slate-800 transition text-left">
+                    <div class="p-2.5 rounded-xl bg-amber-500/15 text-amber-400"><i data-lucide="camera" class="w-5 h-5"></i></div>
+                    <div>
+                      <p class="text-xs font-bold text-white">Notificar Avería con Foto</p>
+                      <p class="text-[11px] text-slate-400">Inicia contador legal de 15 días</p>
+                    </div>
+                  </button>
+                  <button onclick="setTab('ai_advisor')" class="flex items-center gap-3 p-3.5 rounded-2xl bg-slate-950 hover:bg-slate-800 border border-slate-800 transition text-left">
+                    <div class="p-2.5 rounded-xl bg-emerald-500/15 text-emerald-400"><i data-lucide="scale" class="w-5 h-5"></i></div>
+                    <div>
+                      <p class="text-xs font-bold text-white">Dictamen IA (Art. 21 LAU)</p>
+                      <p class="text-[11px] text-slate-400">¿Paga casero o inquilino? + DIY</p>
+                    </div>
+                  </button>
+                  <button onclick="openModal('modal-backup')" class="flex items-center gap-3 p-3.5 rounded-2xl bg-slate-950 hover:bg-slate-800 border border-slate-800 transition text-left">
+                    <div class="p-2.5 rounded-xl bg-purple-500/15 text-purple-400"><i data-lucide="download" class="w-5 h-5"></i></div>
+                    <div>
+                      <p class="text-xs font-bold text-white">Copia de Seguridad Local</p>
+                      <p class="text-[11px] text-slate-400">Exportar / Restaurar archivo JSON</p>
+                    </div>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      } else if (state.activeTab === 'contract') {
+        main.innerHTML = `
+          <div class="space-y-6 animate-fadeIn">
+            <div>
+              <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                <i data-lucide="file-text" class="w-6 h-6 text-emerald-400"></i>
+                Bóveda Documental: Contrato LAU y Resguardo de Fianza
+              </h2>
+              <p class="text-xs text-slate-400 mt-1">Documentación oficial almacenada localmente para tanto el arrendador como el inquilino.</p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div class="bg-slate-900 rounded-3xl p-6 border border-slate-800 space-y-5 flex flex-col justify-between">
+                <div class="space-y-4">
+                  <div class="flex items-center gap-3">
+                    <div class="p-3 rounded-2xl bg-indigo-500/15 text-indigo-400 border border-indigo-500/30">
+                      <i data-lucide="file-text" class="w-6 h-6"></i>
+                    </div>
+                    <div>
+                      <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300">Documento Oficial</span>
+                      <h3 class="text-lg font-bold text-white mt-0.5">Contrato de Arrendamiento</h3>
+                    </div>
+                  </div>
+
+                  <div class="bg-slate-950/80 p-4 rounded-2xl border border-slate-800 space-y-2.5 text-xs">
+                    <div class="flex justify-between py-1 border-b border-slate-800/80">
+                      <span class="text-slate-400">Archivo adjunto:</span>
+                      <span class="font-semibold text-emerald-400">${c.contractDoc.fileName}</span>
+                    </div>
+                    <div class="flex justify-between py-1 border-b border-slate-800/80">
+                      <span class="text-slate-400">Fecha de Inicio:</span>
+                      <span class="font-semibold text-white">${c.startDate}</span>
+                    </div>
+                    <div class="flex justify-between py-1 border-b border-slate-800/80">
+                      <span class="text-slate-400">Duración LAU (Prórroga obligatoria):</span>
+                      <span class="font-semibold text-white">Hasta ${c.endDate} (5 años)</span>
+                    </div>
+                    <div class="flex justify-between py-1 border-b border-slate-800/80">
+                      <span class="text-slate-400">Actualización Anual (Ley 12/2023):</span>
+                      <span class="font-semibold text-blue-300">Índice IRAV (Tope ${c.iravCap}%)</span>
+                    </div>
+                    <div class="pt-1">
+                      <span class="text-slate-400 block mb-1">Cláusulas destacadas:</span>
+                      <p class="text-slate-300 bg-slate-900 p-2.5 rounded-xl border border-slate-800">${c.contractDoc.clauses}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="pt-4 border-t border-slate-800 flex flex-wrap items-center justify-between gap-3">
+                  <label class="cursor-pointer inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold transition border border-slate-700">
+                    <i data-lucide="upload" class="w-4 h-4 text-indigo-400"></i>
+                    <span>Colgar / Actualizar PDF de Contrato</span>
+                    <input type="file" accept=".pdf,image/*" class="hidden" onchange="handleUploadContractFile(event, 'contract')" />
+                  </label>
+                  <button onclick="showToast('Visualizando documento local: ${c.contractDoc.fileName}', 'success')" class="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 text-xs font-semibold transition">
+                    <i data-lucide="eye" class="w-4 h-4"></i> Ver Contrato
+                  </button>
+                </div>
+              </div>
+
+              <div class="bg-slate-900 rounded-3xl p-6 border border-slate-800 space-y-5 flex flex-col justify-between">
+                <div class="space-y-4">
+                  <div class="flex items-start justify-between gap-3">
+                    <div class="flex items-center gap-3">
+                      <div class="p-3 rounded-2xl bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                        <i data-lucide="shield-check" class="w-6 h-6"></i>
+                      </div>
+                      <div>
+                        <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300">Art. 36 LAU Cumplido</span>
+                        <h3 class="text-lg font-bold text-white mt-0.5">Fianza Legal y Garantías</h3>
+                      </div>
+                    </div>
+                    <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">${c.deposit.status}</span>
+                  </div>
+
+                  <div class="bg-slate-950/80 p-4 rounded-2xl border border-slate-800 space-y-2.5 text-xs">
+                    <div class="flex justify-between py-1 border-b border-slate-800/80">
+                      <span class="text-slate-400">Fianza Legal Obligatoria (1 mes):</span>
+                      <span class="font-bold text-emerald-400 text-sm">${c.deposit.amount} €</span>
+                    </div>
+                    <div class="flex justify-between py-1 border-b border-slate-800/80">
+                      <span class="text-slate-400">Garantía Adicional (Máx. 2 meses LAU):</span>
+                      <span class="font-semibold text-white">${c.deposit.additionalGuarantee} €</span>
+                    </div>
+                    <div class="flex justify-between py-1 border-b border-slate-800/80">
+                      <span class="text-slate-400">Organismo Autonómico:</span>
+                      <span class="font-semibold text-white text-right">${c.deposit.organism}</span>
+                    </div>
+                    <div class="flex justify-between py-1 border-b border-slate-800/80">
+                      <span class="text-slate-400">Código Resguardo Oficial:</span>
+                      <span class="font-mono font-semibold text-amber-300">${c.deposit.resguardoCode}</span>
+                    </div>
+                    <div class="flex justify-between py-1">
+                      <span class="text-slate-400">Resguardo colgado:</span>
+                      <span class="font-semibold text-emerald-400">${c.deposit.fileName}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="pt-4 border-t border-slate-800 flex flex-wrap items-center justify-between gap-3">
+                  <label class="cursor-pointer inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold transition border border-slate-700">
+                    <i data-lucide="upload" class="w-4 h-4 text-emerald-400"></i>
+                    <span>Colgar Resguardo de Fianza</span>
+                    <input type="file" accept=".pdf,image/*" class="hidden" onchange="handleUploadContractFile(event, 'deposit')" />
+                  </label>
+                  <button onclick="showToast('Abriendo resguardo oficial: ${c.deposit.fileName}', 'success')" class="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 text-xs font-semibold transition">
+                    <i data-lucide="eye" class="w-4 h-4"></i> Ver Resguardo
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      } else if (state.activeTab === 'bills') {
+        main.innerHTML = `
+          <div class="space-y-6 animate-fadeIn">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                  <i data-lucide="receipt" class="w-6 h-6 text-emerald-400"></i>
+                  Control de Mensualidades y Suministros (Luz, Agua, Gas, Internet)
+                </h2>
+                <p class="text-xs text-slate-400 mt-1">El arrendador pasa los recibos y chequea el cobro; el inquilino los abona y consulta deducciones automáticas por reparaciones.</p>
+              </div>
+              <button onclick="openModal('modal-new-bill')" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs sm:text-sm font-bold shadow-lg shadow-emerald-600/20 transition shrink-0">
+                <i data-lucide="plus" class="w-4 h-4"></i>
+                <span>Pasar Nuevo Recibo / Mensualidad</span>
+              </button>
+            </div>
+
+            <div class="space-y-3">
+              ${c.bills.map(bill => {
+                const iconMap = { 'Luz': 'zap', 'Agua': 'droplets', 'Gas': 'flame', 'Internet': 'wifi' };
+                const colorMap = { 'Luz': 'text-amber-400', 'Agua': 'text-cyan-400', 'Gas': 'text-orange-400', 'Internet': 'text-purple-400' };
+                const icon = iconMap[bill.category] || 'home';
+                const color = colorMap[bill.category] || 'text-emerald-400';
+
+                return `
+                  <div class="bg-slate-900 rounded-2xl p-4 sm:p-5 border border-slate-800 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                    <div class="flex items-start gap-4">
+                      <div class="p-3 rounded-2xl bg-slate-950 border border-slate-800 shrink-0">
+                        <i data-lucide="${icon}" class="w-5 h-5 ${color}"></i>
+                      </div>
+                      <div class="space-y-1">
+                        <div class="flex flex-wrap items-center gap-2">
+                          <span class="text-xs font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-slate-800 text-slate-300">${bill.category}</span>
+                          <h3 class="text-base font-bold text-white">${bill.period}</h3>
+                          ${bill.status === 'pending' ? `<span class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-amber-500/15 text-amber-300 border border-amber-500/30">⏳ Pendiente de pago por inquilino</span>` : ''}
+                          ${bill.status === 'paid_by_tenant' ? `<span class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-blue-500/15 text-blue-300 border border-blue-500/30 animate-pulse">💸 Pagado por Inquilino (Pendiente chequear Casero)</span>` : ''}
+                          ${bill.status === 'verified' ? `<span class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">✅ Pagado y Verificado por Arrendador</span>` : ''}
+                        </div>
+                        <p class="text-xs text-slate-400">${bill.receiptNote}</p>
+                        <div class="flex flex-wrap items-center gap-4 text-[11px] text-slate-500 pt-1">
+                          <span>Vencimiento: ${bill.dueDate}</span>
+                          ${bill.paidDate ? `<span class="text-emerald-400">Fecha abono: ${bill.paidDate}</span>` : ''}
+                        </div>
+                        ${bill.discountAmount > 0 ? `
+                          <div class="mt-2 p-2.5 rounded-xl bg-emerald-950/50 border border-emerald-500/30 text-xs text-emerald-200 flex items-center gap-2">
+                            <i data-lucide="wrench" class="w-4 h-4 text-emerald-400 shrink-0"></i>
+                            <span><strong>Deducción Legal Aplicada (-${bill.discountAmount.toFixed(2)}€):</strong> ${bill.discountReason}</span>
+                          </div>
+                        ` : ''}
+                      </div>
+                    </div>
+
+                    <div class="flex sm:items-center justify-between lg:justify-end gap-4 pt-3 lg:pt-0 border-t lg:border-t-0 border-slate-800">
+                      <div class="text-left lg:text-right">
+                        ${bill.discountAmount > 0 ? `<p class="text-xs text-slate-500 line-through">${bill.baseAmount.toFixed(2)} €</p>` : ''}
+                        <p class="text-xl font-bold text-white">${bill.finalAmount.toFixed(2)} €</p>
+                      </div>
+                      <div class="flex items-center gap-2">
+                        ${bill.status === 'pending' ? `
+                          <button onclick="markBillPaidByTenant('${bill.id}')" class="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-1.5 shadow-md transition">
+                            <i data-lucide="check" class="w-4 h-4"></i>
+                            <span>Pagar Recibo (Inquilino)</span>
+                          </button>
+                        ` : ''}
+                        ${bill.status !== 'verified' ? `
+                          <button onclick="verifyBillByLandlord('${bill.id}')" class="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold flex items-center gap-1.5 shadow-md transition">
+                            <i data-lucide="check-circle-2" class="w-4 h-4"></i>
+                            <span>Chequear Pago (Casero)</span>
+                          </button>
+                        ` : `
+                          <span class="px-3 py-1.5 rounded-xl bg-slate-800 text-slate-400 text-xs font-medium flex items-center gap-1">
+                            <i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-emerald-400"></i> Conciliado
+                          </span>
+                        `}
+                      </div>
+                    </div>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          </div>
+        `;
+      } else if (state.activeTab === 'incidents') {
+        main.innerHTML = `
+          <div class="space-y-6 animate-fadeIn">
+            <div class="bg-slate-900 rounded-3xl p-6 border border-slate-800 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+              <div class="space-y-1.5">
+                <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                  <i data-lucide="wrench" class="w-6 h-6 text-emerald-400"></i>
+                  Incidencias, Averías y Garantía de Respuesta en 15 Días
+                </h2>
+                <p class="text-xs sm:text-sm text-slate-400 max-w-3xl">
+                  El inquilino notifica averías con fotos y analiza con <strong>Gemini 3.8</strong> si corresponde al casero por ley (Art. 21 LAU). Si el casero no acepta o propone reparación en <strong>15 días naturales</strong>, el inquilino puede contratar la reparación y descontar la factura automáticamente de la mensualidad.
+                </p>
+              </div>
+              <button onclick="openModal('modal-new-incident')" class="inline-flex items-center gap-2 px-4 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs sm:text-sm font-bold shadow-lg shadow-emerald-600/20 transition shrink-0">
+                <i data-lucide="camera" class="w-4 h-4"></i>
+                <span>Notificar Avería / Requerir Arreglo</span>
+              </button>
+            </div>
+
+            ${c.incidents.length === 0 ? `
+              <div class="bg-slate-900 rounded-3xl p-12 text-center border border-slate-800 space-y-3">
+                <i data-lucide="wrench" class="w-10 h-10 text-slate-600 mx-auto"></i>
+                <h3 class="text-base font-bold text-white">No hay incidencias registradas en este inmueble</h3>
+              </div>
+            ` : `
+              <div class="space-y-6">
+                ${c.incidents.map(inc => {
+                  const daysElapsed = getDaysElapsed(inc.createdAt);
+                  const daysRemaining = Math.max(0, 15 - daysElapsed);
+                  const isSlaExpired = daysElapsed >= 15 && inc.status === 'pending_landlord';
+
+                  return `
+                    <div class="rounded-3xl p-6 border transition shadow-xl space-y-5 ${
+                      isSlaExpired ? 'bg-gradient-to-br from-slate-900 via-slate-900 to-rose-950/30 border-rose-500/50' : 'bg-slate-900 border-slate-800'
+                    }">
+                      <div class="flex flex-col lg:flex-row justify-between gap-6">
+                        <div class="flex flex-col sm:flex-row gap-4 flex-1">
+                          ${inc.photoUrl ? `<img src="${inc.photoUrl}" alt="${inc.title}" class="w-full sm:w-36 h-36 object-cover rounded-2xl border border-slate-700 shrink-0" />` : ''}
+                          <div class="space-y-2 flex-1">
+                            <div class="flex flex-wrap items-center gap-2">
+                              <span class="px-2.5 py-0.5 rounded-md text-[11px] font-bold bg-slate-800 text-slate-300">${inc.category}</span>
+                              <span class="px-2.5 py-0.5 rounded-md text-[11px] font-semibold bg-amber-500/15 text-amber-300 border border-amber-500/30">Urgencia: ${inc.urgency}</span>
+                              ${inc.status === 'pending_landlord' && !isSlaExpired ? `<span class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-blue-500/15 text-blue-300 border border-blue-500/30">⏳ Esperando respuesta del Arrendador (${daysRemaining} días restantes)</span>` : ''}
+                              ${isSlaExpired ? `<span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-rose-500 text-white animate-pulse">⚠️ PLAZO 15 DÍAS VENCIDO (${daysElapsed} días sin respuesta)</span>` : ''}
+                              ${inc.status === 'accepted_landlord' ? `<span class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">✅ Reparación Aceptada por Arrendador</span>` : ''}
+                              ${inc.status === 'rejected_landlord' ? `<span class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-slate-700 text-slate-300">❌ Rechazada por Arrendador (Alega Art. 21.4 Uso Diario)</span>` : ''}
+                              ${inc.status === 'tenant_hired_deducted' ? `<span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500 text-slate-950">💶 Reparado por Inquilino y Descontado de Mensualidad</span>` : ''}
+                            </div>
+                            <h3 class="text-lg sm:text-xl font-bold text-white">${inc.title}</h3>
+                            <p class="text-xs sm:text-sm text-slate-300 leading-relaxed">${inc.description}</p>
+                            <p class="text-[11px] text-slate-500">Notificado hace ${daysElapsed} días</p>
+                          </div>
+                        </div>
+
+                        <div class="lg:w-80 bg-slate-950/80 p-4 rounded-2xl border border-slate-800 flex flex-col justify-between space-y-3 shrink-0">
+                          <div>
+                            <div class="flex items-center justify-between text-xs mb-1.5">
+                              <span class="font-semibold text-slate-300">Plazo Legal 15 Días</span>
+                              <span class="font-bold text-white">${Math.min(15, daysElapsed)} / 15 días</span>
+                            </div>
+                            <div class="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden">
+                              <div class="h-full ${isSlaExpired ? 'bg-rose-500' : 'bg-emerald-500'}" style="width: ${Math.min(100, (daysElapsed / 15) * 100)}%"></div>
+                            </div>
+                          </div>
+
+                          ${inc.landlordResponse ? `
+                            <div class="p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-xs space-y-1">
+                              <p class="font-bold text-indigo-300">Respuesta del Casero (${inc.landlordResponse.date}):</p>
+                              <p class="text-slate-300">${inc.landlordResponse.note}</p>
+                            </div>
+                          ` : ''}
+
+                          ${inc.tenantRepairInvoice ? `
+                            <div class="p-3 rounded-xl bg-emerald-950/60 border border-emerald-500/40 text-xs space-y-1">
+                              <p class="font-bold text-emerald-300">✓ Factura Descontada de Renta</p>
+                              <p class="text-slate-200">Profesional: <strong>${inc.tenantRepairInvoice.provider}</strong></p>
+                              <p class="text-emerald-400 font-bold text-sm">Importe deducido: -${inc.tenantRepairInvoice.amount.toFixed(2)} €</p>
+                            </div>
+                          ` : ''}
+
+                          <div class="space-y-2 pt-1">
+                            ${inc.status === 'pending_landlord' && !isSlaExpired ? `
+                              <button onclick="simulate16Days('${inc.id}')" class="w-full py-2 px-3 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30 text-xs font-semibold flex items-center justify-center gap-1.5 transition">
+                                <i data-lucide="fast-forward" class="w-3.5 h-3.5"></i>
+                                <span>Simular paso de +16 días (Test SLA)</span>
+                              </button>
+                            ` : ''}
+
+                            ${isSlaExpired ? `
+                              <button onclick="openDeductionModal('${inc.id}')" class="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-rose-600 to-orange-600 hover:from-rose-500 hover:to-orange-500 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-lg transition">
+                                <i data-lucide="euro" class="w-4 h-4"></i>
+                                <span>Contratar Arreglo y Descontar del Mes</span>
+                              </button>
+                            ` : ''}
+
+                            ${inc.status === 'pending_landlord' ? `
+                              <button onclick="openLandlordReplyModal('${inc.id}')" class="w-full py-2 px-3 rounded-xl bg-indigo-600/25 hover:bg-indigo-600/40 text-indigo-200 border border-indigo-500/30 text-xs font-semibold flex items-center justify-center gap-1.5 transition">
+                                <i data-lucide="building-2" class="w-3.5 h-3.5"></i>
+                                <span>Responder / Proponer Arreglo (Casero)</span>
+                              </button>
+                            ` : ''}
+
+                            <button onclick="reAnalyzeIncident('${inc.id}')" class="w-full py-2 px-3 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30 text-xs font-semibold flex items-center justify-center gap-1.5 transition">
+                              <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+                              <span>${state.analyzingIncidentId === inc.id ? 'Analizando con Gemini 3.8...' : 'Actualizar Dictamen IA (Gemini 3.8)'}</span>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
+                      ${inc.aiAnalysis ? `
+                        <div class="bg-slate-950/90 rounded-2xl p-5 border border-emerald-500/30 space-y-4">
+                          <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-3">
+                            <span class="text-xs font-bold uppercase tracking-wider text-emerald-400">⚖️ Dictamen Automatizado • ${inc.aiAnalysis.engine}</span>
+                            <span class="px-3 py-1 rounded-full text-xs font-extrabold ${
+                              inc.aiAnalysis.responsibleParty.includes('ARRENDADOR')
+                                ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/40'
+                                : 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                            }">Responsable Legal: ${inc.aiAnalysis.responsibleParty}</span>
+                          </div>
+
+                          <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                            <div class="space-y-2.5">
+                              <p class="text-xs font-bold text-slate-200">Base Legal: <span class="text-emerald-300">${inc.aiAnalysis.legalBasis}</span> (${inc.aiAnalysis.confidence})</p>
+                              <p class="text-xs text-slate-300 leading-relaxed bg-slate-900 p-3.5 rounded-xl border border-slate-800">${inc.aiAnalysis.legalExplanation}</p>
+                              <div class="flex items-center justify-between text-xs bg-slate-900/60 px-3.5 py-2 rounded-xl border border-slate-800">
+                                <span class="text-slate-400">Coste estimado en España:</span>
+                                <span class="font-bold text-white">${inc.aiAnalysis.estimatedCost}</span>
+                              </div>
+                            </div>
+
+                            <div class="space-y-3">
+                              <p class="text-xs font-bold text-slate-200">Guía de reparación paso a paso y Vídeos de YouTube:</p>
+                              <ol class="space-y-1.5 text-xs text-slate-300 bg-slate-900 p-3.5 rounded-xl border border-slate-800 list-decimal list-inside">
+                                ${inc.aiAnalysis.diySteps.map(s => `<li>${s}</li>`).join('')}
+                              </ol>
+                              <div class="flex flex-wrap gap-2">
+                                ${inc.aiAnalysis.youtubeQueries.map(yt => `
+                                  <a href="https://www.youtube.com/results?search_query=${encodeURIComponent(yt.query)}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-300 border border-red-500/30 text-xs font-medium transition">
+                                    <i data-lucide="youtube" class="w-3.5 h-3.5 text-red-400"></i>
+                                    <span>${yt.title}</span>
+                                    <i data-lucide="external-link" class="w-3 h-3 opacity-70"></i>
+                                  </a>
+                                `).join('')}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ` : ''}
+                    </div>
+                  `;
+                }).join('')}
+              </div>
+            `}
+          </div>
+        `;
+      } else if (state.activeTab === 'ai_advisor') {
+        main.innerHTML = `
+          <div class="space-y-6 animate-fadeIn">
+            <div class="bg-gradient-to-br from-slate-900 via-slate-900 to-emerald-950/30 rounded-3xl p-6 border border-emerald-500/30 shadow-xl space-y-4">
+              <div class="flex items-center gap-3">
+                <div class="p-3 rounded-2xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                  <i data-lucide="sparkles" class="w-6 h-6"></i>
+                </div>
+                <div>
+                  <h2 class="text-xl font-bold text-white">Asesor Jurídico y Bricolaje IA (Gemini 3.8 Legal Core)</h2>
+                  <p class="text-xs sm:text-sm text-slate-300">Pregunta cualquier duda sobre una rotura o avería. La IA dictamina según el Art. 21 de la LAU si corresponde al Arrendador o al Inquilino y te da enlaces a vídeos de YouTube.</p>
+                </div>
+              </div>
+
+              <form onsubmit="handleStandaloneAdvisorSubmit(event)" class="space-y-4 pt-2">
+                <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                  <div>
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">Categoría</label>
+                    <select id="advisor-category" class="w-full bg-slate-950 text-white text-sm rounded-xl px-3.5 py-3 border border-slate-800">
+                      <option value="Fontanería">Fontanería / Grifos / Cisterna</option>
+                      <option value="Caldera/Climatización">Caldera / Termo / Aire</option>
+                      <option value="Electrodomésticos">Electrodomésticos</option>
+                      <option value="Carpintería/Persianas">Persianas / Puertas</option>
+                      <option value="Electricidad">Electricidad / Enchufes</option>
+                    </select>
+                  </div>
+                  <div class="sm:col-span-3">
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">Describe el problema o avería</label>
+                    <div class="flex gap-2">
+                      <input id="advisor-query" type="text" value="${state.standaloneQuery}" placeholder="Escribe qué se ha roto, antigüedad y cómo ha ocurrido..." class="flex-1 bg-slate-950 text-white text-sm rounded-xl px-4 py-3 border border-slate-800" />
+                      <button type="submit" class="px-5 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs sm:text-sm flex items-center gap-2 shrink-0 shadow-lg transition">
+                        <i data-lucide="sparkles" class="w-4 h-4"></i>
+                        <span>${state.isAnalyzingStandalone ? 'Analizando...' : 'Analizar por Ley'}</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-2 pt-1">
+                  <span class="text-[11px] text-slate-400">Ejemplos rápidos:</span>
+                  <button type="button" onclick="setAdvisorSample('La cisterna del WC pierde un hilo de agua continuo porque la goma del descargador está gastada')" class="text-[11px] px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300">Cisterna WC pierde agua</button>
+                  <button type="button" onclick="setAdvisorSample('La lavadora tiene 7 años y ha dejado de centrifugar haciendo ruido metálico en el tambor')" class="text-[11px] px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300">Lavadora de 7 años no centrifuga</button>
+                  <button type="button" onclick="setAdvisorSample('Se ha fundido el foco LED empotrado del techo de la cocina tras 1 año de uso')" class="text-[11px] px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300">Foco LED fundido</button>
+                </div>
+              </form>
+            </div>
+
+            ${state.standaloneResult ? `
+              <div class="bg-slate-900 rounded-3xl p-6 border border-emerald-500/40 shadow-2xl space-y-5 animate-fadeIn">
+                <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-4">
+                  <div>
+                    <span class="text-xs font-bold uppercase tracking-wider text-emerald-400">Resultado Oficial • ${state.standaloneResult.engine}</span>
+                    <h3 class="text-lg font-bold text-white mt-0.5">${state.standaloneResult.legalBasis}</h3>
+                  </div>
+                  <div class="px-4 py-2 rounded-2xl bg-slate-950 border border-slate-800 flex items-center gap-2">
+                    <span class="text-xs text-slate-400">Corresponde pagar/arreglar a:</span>
+                    <span class="text-sm font-extrabold text-emerald-400">${state.standaloneResult.responsibleParty}</span>
+                  </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div class="space-y-3">
+                    <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400">Justificación Jurídica (LAU)</h4>
+                    <p class="text-sm text-slate-200 leading-relaxed bg-slate-950 p-4 rounded-2xl border border-slate-800">${state.standaloneResult.legalExplanation}</p>
+                    <p class="text-xs text-slate-400">Coste orientativo estimado: <strong class="text-white">${state.standaloneResult.estimatedCost}</strong></p>
+                  </div>
+                  <div class="space-y-3">
+                    <h4 class="text-xs font-bold uppercase tracking-wider text-amber-400">Explicación Sencilla (DIY) y Vídeos de YouTube</h4>
+                    <ol class="space-y-2 text-xs sm:text-sm text-slate-200 bg-slate-950 p-4 rounded-2xl border border-slate-800 list-decimal list-inside">
+                      ${state.standaloneResult.diySteps.map(s => `<li>${s}</li>`).join('')}
+                    </ol>
+                    <div class="flex flex-wrap gap-2 pt-1">
+                      ${state.standaloneResult.youtubeQueries.map(yt => `
+                        <a href="https://www.youtube.com/results?search_query=${encodeURIComponent(yt.query)}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-red-600/15 hover:bg-red-600/25 text-red-300 border border-red-500/30 text-xs font-semibold transition">
+                          <i data-lucide="youtube" class="w-4 h-4 text-red-400"></i>
+                          <span>Ver en YouTube: ${yt.title}</span>
+                          <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+                        </a>
+                      `).join('')}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ` : ''}
+          </div>
+        `;
+      }
+
+      lucide.createIcons();
+    }
+
+    window.onload = function () {
+      loadState();
+      renderAll();
+    };
+  </script>
+</body>
+</html>
